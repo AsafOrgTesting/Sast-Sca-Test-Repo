@@ -64,7 +64,7 @@ End Sub
 
 p = txtP.Text
 Dim conn As New ADODB.Connection
-conn.Open "connection string"
+conn.Open "driver={SQL Server};Database=appDb;Integrated Security=SSPI;"
 
 Dim cmd As New ADODB.Command
 With cmd
