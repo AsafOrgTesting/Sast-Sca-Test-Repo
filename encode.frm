@@ -14,7 +14,8 @@ Dim rs As DAO.Recordset
     query = "SELECT COUNT (*) FROM Passwords " & _
         "WHERE UserName='" & user_name & "'" & _
         "  AND Password='" & password & "'"
-    txtQuery.Text = query
+    ' Do not display the query string: it contains the user's plaintext password,
+    ' which would be a privacy violation (CWE-359).
 
     ' Execute the query.
     On Error Resume Next
