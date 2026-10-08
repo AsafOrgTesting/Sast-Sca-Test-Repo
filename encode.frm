@@ -34,31 +34,58 @@ End Sub
 Private Sub cmdUnsafe_Click()
 Dim user_name As String
 Dim password As String
-Dim query As String
-Dim rs As DAO.Recordset
+Dim conn As ADODB.Connection
+Dim cmd As ADODB.Command
+Dim rs As ADODB.Recordset
 
     ' Get the user name and password.
     user_name = txtUserName.Text
     password = txtPassword.Text
 
-    ' Compose the query.
-    query = "SELECT COUNT (*) FROM Passwords " & _
-        "WHERE UserName='" & user_name & "'" & _
-        "  AND Password='" & password & "'"
-    txtQuery.Text = query
+    ' Display the parameterized query template (no user data embedded).
+    txtQuery.Text = "SELECT COUNT (*) FROM Passwords WHERE UserName=? AND Password=?"
 
-    ' Execute the query.
-    On Error Resume Next
-    Set rs = m_DB.OpenRecordset(query, dbOpenSnapshot)
-    If Err.Number <> 0 Then
-        lblValid.Caption = "Invalid Query"
-    ElseIf (CInt(rs.Fields(0)) > 0) Then
+    ' Execute the query using parameterized ADODB Command to prevent SQL Injection.
+    On Error GoTo Error_Handler
+
+    Set conn = New ADODB.Connection
+    conn.Open m_DB.Name
+
+    Set cmd = New ADODB.Command
+    cmd.ActiveConnection = conn
+    cmd.CommandType = adCmdText
+    cmd.CommandText = "SELECT COUNT (*) FROM Passwords WHERE UserName=? AND Password=?"
+
+    ' Bind parameters — user input is passed as data, never interpreted as SQL.
+    cmd.Parameters.Append cmd.CreateParameter("UserName", adVarChar, adParamInput, 255, user_name)
+    cmd.Parameters.Append cmd.CreateParameter("Password", adVarChar, adParamInput, 255, password)
+
+    Set rs = cmd.Execute
+
+    If (CInt(rs.Fields(0)) > 0) Then
         lblValid.Caption = "Valid"
     Else
         lblValid.Caption = "Invalid"
     End If
 
     rs.Close
+    Set rs = Nothing
+    conn.Close
+    Set conn = Nothing
+    Set cmd = Nothing
+    Exit Sub
+
+Error_Handler:
+    lblValid.Caption = "Invalid Query"
+    If Not rs Is Nothing Then
+        If rs.State = adStateOpen Then rs.Close
+    End If
+    Set rs = Nothing
+    If Not conn Is Nothing Then
+        If conn.State = adStateOpen Then conn.Close
+    End If
+    Set conn = Nothing
+    Set cmd = Nothing
 End Sub
 
 
